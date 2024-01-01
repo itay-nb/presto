@@ -235,7 +235,7 @@ public class StoragePartitionLoader
                 inputFormat,
                 pathDomain,
                 getNodeSelectionStrategy(session),
-                getMaxInitialSplitSize(session),
+                getMaxInitialSplitSize(session),  // ITAY split generation flow -- InternalHiveSplitFactory:minimumTargetSplitSizeInBytes defaults to 1/2 maxSplitSize
                 s3SelectPushdownEnabled,
                 new HiveSplitPartitionInfo(
                         storage,
@@ -251,7 +251,7 @@ public class StoragePartitionLoader
     }
 
     @Override
-    public ListenableFuture<?> loadPartition(HivePartitionMetadata partition, HiveSplitSource hiveSplitSource, boolean stopped)
+    public ListenableFuture<?> loadPartition(HivePartitionMetadata partition, HiveSplitSource hiveSplitSource, boolean stopped) // ITAY splits generation flow STARTS HERE
             throws IOException
     {
         String partitionName = partition.getHivePartition().getPartitionId();
@@ -316,10 +316,10 @@ public class StoragePartitionLoader
         // Partial aggregation pushdown works at the granularity of individual files
         // therefore we must not split files when either is enabled.
         // Skip header / footer lines are not splittable except for a special case when skip.header.line.count=1
-        boolean splittable = isFileSplittable(session) &&
+        boolean splittable = isFileSplittable(session) && // ITAY split generation flow - default true
                 !isOrderBasedExecutionEnabled(session) &&
                 !partialAggregationsPushedDown &&
-                getFooterCount(schema) == 0 && getHeaderCount(schema) <= 1;
+                getFooterCount(schema) == 0 && getHeaderCount(schema) <= 1; // ITAY assuming it's not configured to skip header/footer
 
         // Bucketed partitions are fully loaded immediately since all files must be loaded to determine the file to bucket mapping
         if (tableBucketInfo.isPresent()) {
@@ -334,7 +334,7 @@ public class StoragePartitionLoader
             return hiveSplitSource.addToQueue(getBucketedSplits(path, fs, splitFactory, tableBucketInfo.get(), bucketConversion, partitionName, partition.getPartition(), splittable));
         }
 
-        fileIterators.addLast(createInternalHiveSplitIterator(path, fs, splitFactory, splittable, partition.getPartition()));
+        fileIterators.addLast(createInternalHiveSplitIterator(path, fs, splitFactory, splittable, partition.getPartition())); // ITAY split generation flow - splittable is true
         return COMPLETED_FUTURE;
     }
 
@@ -354,7 +354,7 @@ public class StoragePartitionLoader
         return lastResult;
     }
 
-    private Iterator<InternalHiveSplit> createInternalHiveSplitIterator(Path path, ExtendedFileSystem fileSystem, InternalHiveSplitFactory splitFactory, boolean splittable, Optional<Partition> partition)
+    private Iterator<InternalHiveSplit> createInternalHiveSplitIterator(Path path, ExtendedFileSystem fileSystem, InternalHiveSplitFactory splitFactory, boolean splittable, Optional<Partition> partition)  // ITAY split generation flow
     {
         boolean cacheable = isUseListDirectoryCache(session);
         if (partition.isPresent()) {
@@ -368,7 +368,7 @@ public class StoragePartitionLoader
                 hdfsContext.getIdentity(),
                 buildDirectoryContextProperties(session));
         return stream(directoryLister.list(fileSystem, table, path, partition, namenodeStats, hiveDirectoryContext))
-                .map(status -> splitFactory.createInternalHiveSplit(status, splittable))
+                .map(status -> splitFactory.createInternalHiveSplit(status, splittable))  // ITAY split generation flow - this actually creates InternalHiveSplits from files, splittable is true - see presto-hive/src/main/java/com/facebook/presto/hive/util/InternalHiveSplitFactory.java (status here is actually HiveFileInfo)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .iterator();

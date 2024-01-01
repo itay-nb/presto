@@ -94,23 +94,23 @@ public class InternalHiveSplitFactory
         return createInternalHiveSplit(fileInfo, OptionalInt.of(readBucketNumber), OptionalInt.of(tableBucketNumber), splittable);
     }
 
-    private Optional<InternalHiveSplit> createInternalHiveSplit(HiveFileInfo fileInfo, OptionalInt readBucketNumber, OptionalInt tableBucketNumber, boolean splittable)
+    private Optional<InternalHiveSplit> createInternalHiveSplit(HiveFileInfo fileInfo, OptionalInt readBucketNumber, OptionalInt tableBucketNumber, boolean splittable) // ITAY split generation flow
     {
         splittable = splittable &&
-                fileInfo.getLength() > minimumTargetSplitSizeInBytes &&
+                fileInfo.getLength() > minimumTargetSplitSizeInBytes &&  // ITAY split generation flow - see getHiveSplitFactory in presto-hive/src/main/java/com/facebook/presto/hive/StoragePartitionLoader.java 32MB
                 (s3SelectPushdownEnabled ?
                         isSelectSplittable(inputFormat, fileInfo.getPath(), s3SelectPushdownEnabled) :
-                        isSplittable(inputFormat, fileSystem, fileInfo.getPath()));
+                        isSplittable(inputFormat, fileSystem, fileInfo.getPath())); // ITAY split generation flow - always true
         return createInternalHiveSplit(
                 fileInfo.getPath(),
-                fileInfo.getBlockLocations(),
+                fileInfo.getBlockLocations(), // ITAY split generation flow - blocks are already inside HiveFileInfo
                 0,
                 fileInfo.getLength(),
                 fileInfo.getLength(),
                 fileInfo.getFileModifiedTime(),
                 readBucketNumber,
                 tableBucketNumber,
-                splittable,
+                splittable,  // ITAY split generation flow - internal hive split is splittable
                 fileInfo.getExtraFileInfo(),
                 fileInfo.getCustomSplitInfo());
     }
@@ -180,7 +180,7 @@ public class InternalHiveSplitFactory
             if (!needsHostAddresses(forceLocalScheduling, addresses)) {
                 addresses = ImmutableList.of();
             }
-            blockBuilder.add(new InternalHiveBlock(blockEnd, addresses));
+            blockBuilder.add(new InternalHiveBlock(blockEnd, addresses)); // ITAY split generation flow - blocks are based on HDFS blocks
         }
         List<InternalHiveBlock> blocks = blockBuilder.build();
         checkBlocks(blocks, start, length);

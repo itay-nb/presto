@@ -124,7 +124,7 @@ class HiveSplitSource
         this.maxSplitSize = getMaxSplitSize(session);
         this.maxInitialSplitSize = getMaxInitialSplitSize(session);
         this.useRewindableSplitSource = useRewindableSplitSource;
-        this.remainingInitialSplits = new AtomicInteger(maxInitialSplits);
+        this.remainingInitialSplits = new AtomicInteger(maxInitialSplits); // ITAY 200
         this.splitWeightProvider = isSizeBasedSplitWeightsEnabled(session) ? new SizeBasedSplitWeightProvider(getMinimumAssignedSplitWeight(session), maxSplitSize) : HiveSplitWeightProvider.uniformStandardWeightProvider();
     }
 
@@ -458,20 +458,20 @@ class HiveSplitSource
         }
 
         OptionalInt bucketNumber = toBucketNumber(partitionHandle);
-        ListenableFuture<List<ConnectorSplit>> future = queues.borrowBatchAsync(bucketNumber, maxSize, internalSplits -> {
+        ListenableFuture<List<ConnectorSplit>> future = queues.borrowBatchAsync(bucketNumber, maxSize, internalSplits -> {  // ITAY split nextBatch flow - STARTS HERE iterate InternalHiveSplits that are splittable
             ImmutableList.Builder<InternalHiveSplit> splitsToInsertBuilder = ImmutableList.builder();
             ImmutableList.Builder<ConnectorSplit> resultBuilder = ImmutableList.builder();
             int removedEstimatedSizeInBytes = 0;
             for (InternalHiveSplit internalSplit : internalSplits) {
-                long maxSplitBytes = maxSplitSize.toBytes();
+                long maxSplitBytes = maxSplitSize.toBytes(); // ITAY 64MB
                 if (remainingInitialSplits.get() > 0) {
                     if (remainingInitialSplits.getAndDecrement() > 0) {
-                        maxSplitBytes = maxInitialSplitSize.toBytes();
+                        maxSplitBytes = maxInitialSplitSize.toBytes(); // ITAY 32MB
                     }
                 }
                 InternalHiveBlock block = internalSplit.currentBlock();
                 long splitBytes;
-                if (internalSplit.isSplittable()) {
+                if (internalSplit.isSplittable()) { // ITAY split nextBatch flow - all are splittable
                     long remainingBlockBytes = block.getEnd() - internalSplit.getStart();
                     if (remainingBlockBytes <= maxSplitBytes) {
                         splitBytes = remainingBlockBytes;
@@ -497,7 +497,7 @@ class HiveSplitSource
                         internalSplit.getExtraFileInfo(),
                         internalSplit.getCustomSplitInfo());
 
-                resultBuilder.add(new HiveSplit(
+                resultBuilder.add(new HiveSplit( // ITAY create HiveSplits
                         fileSplit,
                         databaseName,
                         tableName,

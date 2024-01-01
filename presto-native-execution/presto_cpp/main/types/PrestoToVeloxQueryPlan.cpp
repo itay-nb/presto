@@ -2022,7 +2022,7 @@ core::PlanNodePtr VeloxQueryPlanConverterBase::toVeloxQueryPlan(
     rightKeys.emplace_back(exprConverter_.toVeloxExpr(clause.right));
   }
 
-  return std::make_shared<core::HashJoinNode>(
+  return std::make_shared<core::HashJoinNode>( // ITAY ignore dynamicFilters member of JoinNode
       node->id,
       joinType,
       false,

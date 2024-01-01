@@ -440,7 +440,7 @@ public final class HiveUtil
         Method method = null;
         for (Class<?> clazz = inputFormat.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
             try {
-                method = clazz.getDeclaredMethod("isSplitable", FileSystem.class, Path.class);
+                method = clazz.getDeclaredMethod("isSplitable", FileSystem.class, Path.class);  // ITAY split generation flow -- see presto-hive/src/main/java/com/facebook/presto/hive/pagefile/PageInputFormat.java - always true
                 break;
             }
             catch (NoSuchMethodException ignored) {

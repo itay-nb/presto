@@ -366,7 +366,7 @@ public final class HiveSessionProperties
                         hiveClientConfig.getMaxSplitSize(),
                         true),
                 dataSizeSessionProperty(
-                        MAX_INITIAL_SPLIT_SIZE,
+                        MAX_INITIAL_SPLIT_SIZE, // ITAY split generation flow
                         "Max initial split size",
                         hiveClientConfig.getMaxInitialSplitSize(),
                         true),
@@ -689,8 +689,8 @@ public final class HiveSessionProperties
                         true),
                 booleanProperty(
                         FILE_SPLITTABLE,
-                        "If a hive file is splittable when coordinator schedules splits",
-                        hiveClientConfig.isFileSplittable(),
+                        "If a hive file is splittable when coordinator schedules splits", 
+                        hiveClientConfig.isFileSplittable(), // ITAY split generation flow - this is the default value which is true -- see presto-hive/src/main/java/com/facebook/presto/hive/HiveClientConfig.java
                         true),
                 booleanProperty(
                         HUDI_METADATA_ENABLED,
@@ -920,7 +920,7 @@ public final class HiveSessionProperties
         return session.getProperty(MAX_SPLIT_SIZE, DataSize.class);
     }
 
-    public static DataSize getMaxInitialSplitSize(ConnectorSession session)
+    public static DataSize getMaxInitialSplitSize(ConnectorSession session) // ITAY split generation flow
     {
         return session.getProperty(MAX_INITIAL_SPLIT_SIZE, DataSize.class);
     }
@@ -1217,7 +1217,7 @@ public final class HiveSessionProperties
         return session.getProperty(MAX_INITIAL_SPLITS, Integer.class);
     }
 
-    public static boolean isFileSplittable(ConnectorSession session)
+    public static boolean isFileSplittable(ConnectorSession session) // ITAY split generation flow
     {
         return session.getProperty(FILE_SPLITTABLE, Boolean.class);
     }

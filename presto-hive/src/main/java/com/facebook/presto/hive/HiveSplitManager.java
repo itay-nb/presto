@@ -214,7 +214,7 @@ public class HiveSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(
+    public ConnectorSplitSource getSplits( // ITAY Hive implementation of this SPI
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
             ConnectorTableLayoutHandle layoutHandle,
@@ -279,7 +279,7 @@ public class HiveSplitManager
                 splitSchedulingContext.getWarningCollector(),
                 layout.getRequestedColumns(),
                 layout.getPredicateColumns(),
-                layout.getDomainPredicate().getDomains());
+                layout.getDomainPredicate().getDomains()); // ITAY partition prunning using domains
 
         HiveSplitLoader hiveSplitLoader = new BackgroundHiveSplitLoader(
                 table,
@@ -690,26 +690,26 @@ public class HiveSplitManager
 
         Map<String, String> partitionNameToLocation = new HashMap<>();
         ImmutableMap.Builder<String, PartitionSplitInfo> partitionSplitInfoBuilder = ImmutableMap.builder();
-        for (Map.Entry<String, Optional<Partition>> entry : partitions.entrySet()) {
+        for (Map.Entry<String, Optional<Partition>> entry : partitions.entrySet()) { // ITAY loop over partitions
             ImmutableSet.Builder<ColumnHandle> redundantColumnDomainsBuilder = ImmutableSet.builder();
             if (!entry.getValue().isPresent()) {
                 throw new PrestoException(HIVE_PARTITION_DROPPED_DURING_QUERY, "Partition no longer exists: " + entry.getKey());
             }
             boolean pruned = false;
-            if (partitionStatistics.containsKey(entry.getKey())) {
+            if (partitionStatistics.containsKey(entry.getKey())) { // ITAY are there statistics for this partition?
                 Map<String, HiveColumnStatistics> columnStatistics = partitionStatistics.get(entry.getKey()).getColumnStatistics();
-                for (Map.Entry<String, HiveColumnHandle> predicateColumnEntry : predicateColumns.entrySet()) {
-                    if (columnStatistics.containsKey(predicateColumnEntry.getKey())) {
+                for (Map.Entry<String, HiveColumnHandle> predicateColumnEntry : predicateColumns.entrySet()) { // ITAY loop over predicate columns
+                    if (columnStatistics.containsKey(predicateColumnEntry.getKey())) { // ITAY are there statistics for specifically this predicate column?
                         Optional<ValueSet> columnsStatisticsValueSet = getColumnStatisticsValueSet(columnStatistics.get(predicateColumnEntry.getKey()), predicateColumnEntry.getValue().getHiveType());
                         Subfield subfield = new Subfield(predicateColumnEntry.getKey());
-                        if (columnsStatisticsValueSet.isPresent() && domains.get().containsKey(subfield)) {
+                        if (columnsStatisticsValueSet.isPresent() && domains.get().containsKey(subfield)) { // ITAY are there valueSet statistics for this predicate col subfield matching domain subfield?
                             ValueSet columnPredicateValueSet = domains.get().get(subfield).getValues();
                             if (!columnPredicateValueSet.overlaps(columnsStatisticsValueSet.get())) {
-                                pruned = true;
+                                pruned = true; // ITAY partition prunning
                                 break;
                             }
                             if (columnPredicateValueSet.contains(columnsStatisticsValueSet.get())) {
-                                redundantColumnDomainsBuilder.add(predicateColumnEntry.getValue());
+                                redundantColumnDomainsBuilder.add(predicateColumnEntry.getValue()); // ITAY further optimization: if all values inside the partition col are already contained in the filter domain - disregard the domain
                             }
                         }
                     }

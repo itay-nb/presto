@@ -25,7 +25,7 @@ public class AdaptivePhasedExecutionPolicy
     @Override
     public ExecutionSchedule createExecutionSchedule(Session session, Collection<StageExecutionAndScheduler> stages)
     {
-        if (stages.size() > getMaxStageCountForEagerScheduling(session)) {
+        if (stages.size() > getMaxStageCountForEagerScheduling(session)) { // ITAY adaptive execution fallbacks to all-at-once under 25 stages
             return new PhasedExecutionSchedule(stages);
         }
         else {

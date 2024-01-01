@@ -245,7 +245,7 @@ public class HiveClientConfig
     public DataSize getMaxInitialSplitSize()
     {
         if (maxInitialSplitSize == null) {
-            return new DataSize(maxSplitSize.getValue() / 2, maxSplitSize.getUnit());
+            return new DataSize(maxSplitSize.getValue() / 2, maxSplitSize.getUnit());  // ITAY split generation flow - default to 1/2 maxSplitSize = 64MB / 2 = 32MB
         }
         return maxInitialSplitSize;
     }
@@ -1818,7 +1818,7 @@ public class HiveClientConfig
     }
 
     @Config("hive.file-splittable")
-    @ConfigDescription("By default, this value is true. Set to false to make a hive file un-splittable when coordinator schedules splits.")
+    @ConfigDescription("By default, this value is true. Set to false to make a hive file un-splittable when coordinator schedules splits.") // ITAY split generation flow - default for file-splittable is true
     public HiveClientConfig setFileSplittable(boolean fileSplittable)
     {
         this.fileSplittable = fileSplittable;
